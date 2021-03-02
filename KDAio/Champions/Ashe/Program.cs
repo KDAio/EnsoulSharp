@@ -108,14 +108,14 @@ namespace KDAAshe
             //Q CAST
             if (mainMenu["Combo"].GetValue<MenuBool>("Quse").Enabled && Q.IsReady() && Orbwalker.GetTarget() != null)
                 {
-                    var target = Orbwalker.GetTarget() as AIHeroClient;
-                    if (target != null && !target.IsDead && target.InAutoAttackRange())
-                    {
-                        if (Player.HasBuff("asheqcastready"))
+                  //  var target = Orbwalker.GetTarget() as AIHeroClient;
+                   // if (target != null && !target.IsDead && target.InAutoAttackRange())
+                 //   {
+                       // if (Player.HasBuff("asheqcastready"))
                         {
                             Q.Cast();
                         }
-                    }
+                  //  }
                 }
             //R CAST
             if (mainMenu["Combo"].GetValue<MenuBool>("Ruse").Enabled && R.IsReady())
@@ -138,6 +138,7 @@ namespace KDAAshe
 
         public static void HarassLogic()
         {
+            /*
             var target = TargetSelector.GetTarget(E.Range);
             var input = W.GetPrediction(target);
             if(target == null) return;
@@ -166,11 +167,12 @@ namespace KDAAshe
                     }
                 }
             }
-            
+            */
         }
 
         public static void KSLogic()
         {
+            /*
             foreach (var target in GameObjects.EnemyHeroes.Where(x=> x.IsValidTarget(E.Range)))
             {
                 if(target==null) return;
@@ -182,10 +184,12 @@ namespace KDAAshe
                     }
                 }
             }
+            */
         }
 
         private static void LaneClearLogic()
         {
+            /*
             int cont = 0;
             foreach (var minion in GameObjects.EnemyMinions.Where(x=> x.IsValidTarget(E.Range)))
             {
@@ -209,10 +213,12 @@ namespace KDAAshe
                     }
                 }
             }
+            */
         }
 
         private static void JungleClearLogic()
         {
+            /*
             var mobs = GameObjects.Jungle.FirstOrDefault(x => x.IsValidTarget(E.Range));
             var inpput = W.GetPrediction(mobs);
             if(mobs == null) return;
@@ -227,6 +233,7 @@ namespace KDAAshe
                     W.Cast(inpput.UnitPosition);
                 }
             }
+            */
         }
         private static void OnGameUpdate(EventArgs args){
             if(GameObjects.Player.IsDead) return;
