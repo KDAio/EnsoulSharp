@@ -15,12 +15,13 @@ namespace KDAAshe
 
         public static Font TextBold;
         private static Spell Q,W,E,R;
-        public static int Kills = 0;
-        private static Menu mainMenu;
 
+        private static Menu mainMenu;
+        private static AIHeroClient Player => ObjectManager.Player;
 
         public static void OnGameLoad()
         {
+
             TextBold = new Font(
     Drawing.Direct3DDevice, new FontDescription
     {
@@ -31,6 +32,7 @@ namespace KDAAshe
         Quality = FontQuality.ClearType,
     }
 );
+
             if (GameObjects.Player.CharacterName != "Ashe") return;
             Q = new Spell(SpellSlot.Q);
 
@@ -101,38 +103,37 @@ namespace KDAAshe
                 GameObjects.Player.SetSkin(mainMenu["Misc"].GetValue<MenuSlider>("skins").Value);
             }
         }
-        public static void SilentBack()
-        {
-            if (mainMenu["Misc"].GetValue<MenuKeyBind>("back").Active && Q.IsReady())
-            {
-                Q.Cast();
-                DelayAction.Add((int)(Q.Delay+300),()=>ObjectManager.Player.Spellbook.CastSpell(SpellSlot.Recall));
-            }
-        }
         public static void ComboLogic()
         {
-            foreach (var target in GameObjects.EnemyHeroes.Where(x => x.IsValidTarget(E.Range) && x.IsVisible))
-            {
-                if (target == null) return;
-                var input = W.GetPrediction(target);
-                if (mainMenu["Combo"].GetValue<MenuBool>("Quse").Enabled && Q.IsReady() && GameObjects.Player.Distance(target.Position) < 1300f)
+            //Q CAST
+            if (mainMenu["Combo"].GetValue<MenuBool>("Quse").Enabled && Q.IsReady() && Orbwalker.GetTarget() != null)
                 {
-                    Q.Cast();
-                }
-
-                if (mainMenu["Combo"].GetValue<MenuBool>("Wuse").Enabled && W.IsReady() && target.IsValidTarget(W.Range) && input.Hitchance >= HitChance.High && target.IsValidTarget(W.Range))
-                {
-                    W.Cast(input.UnitPosition);
-                }
-
-                if (mainMenu["Combo"].GetValue<MenuBool>("Ruse").Enabled && R.IsReady() && target.IsValidTarget(R.Range))
-                {
-                    if (ObjectManager.Player.CountEnemyHeroesInRange(R.Range) >= mainMenu["Combo"].GetValue<MenuSlider>("Rcount").Value)
+                    var target = Orbwalker.GetTarget() as AIHeroClient;
+                    if (target != null && !target.IsDead && target.InAutoAttackRange())
                     {
-                        R.Cast();
+                        if (Player.HasBuff("asheqcastready"))
+                        {
+                            Q.Cast();
+                        }
                     }
                 }
+            //R CAST
+            if (mainMenu["Combo"].GetValue<MenuBool>("Ruse").Enabled && R.IsReady())
+            {
+                var target = TargetSelector.GetTarget(R.Range, DamageType.Magical);
+                if (Player.CountEnemyHeroesInRange(R.Range) >= mainMenu["Combo"].GetValue<MenuSlider>("Rcount").Value && target.IsValidTarget(R.Range))
+                {
+                    R.Cast(target);
+                }
             }
+
+            //W CAST
+            var targetW = TargetSelector.GetTarget(W.Range, DamageType.Physical);
+            if (mainMenu["Combo"].GetValue<MenuBool>("Wuse").Enabled && W.IsReady() && targetW.IsValidTarget(W.Range))
+                {
+                    W.Cast(targetW);
+                }
+            
         }
 
         public static void HarassLogic()
@@ -231,7 +232,6 @@ namespace KDAAshe
             if(GameObjects.Player.IsDead) return;
             KSLogic();
             SetSkin();
-            SilentBack();
             switch (Orbwalker.ActiveMode)
             {
                 case OrbwalkerMode.Combo:
@@ -246,9 +246,6 @@ namespace KDAAshe
                     break;
                 
             }
-            
-                
-            
             
         }
         public static void DrawText(Font fuente, String text, float posx, float posy, SharpDX.ColorBGRA color){
@@ -268,64 +265,19 @@ namespace KDAAshe
         
         
         public static void OnDraw(EventArgs args){
-            if(mainMenu["Draw"].GetValue<MenuBool>("lista").Enabled){
+            if(mainMenu["Draw"].GetValue<MenuBool>("anav").Enabled){
                 if(mainMenu["Draw"].GetValue<MenuBool>("rangeW").Enabled){
                     if(W.IsReady()){
                         Render.Circle.DrawCircle(GameObjects.Player.Position,W.Range,System.Drawing.Color.Cyan);
                     }
                 }
-                if(mainMenu["Draw"].GetValue<MenuBool>("rangeE").Enabled){
-                    if(E.IsReady()){
-                        Render.Circle.DrawCircle(GameObjects.Player.Position,E.Range,System.Drawing.Color.Cyan);
-                    }
-                }
-                if(mainMenu["Draw"].GetValue<MenuBool>("rangeR").Enabled){
-                    if(R.IsReady()){
-                        Render.Circle.DrawCircle(GameObjects.Player.Position,R.Range,System.Drawing.Color.Cyan);
-                    }
-                }
+
             }else{
                 if(mainMenu["Draw"].GetValue<MenuBool>("rangeW").Enabled){
                     Render.Circle.DrawCircle(GameObjects.Player.Position,W.Range,System.Drawing.Color.Cyan);
                 }
-                if(mainMenu["Draw"].GetValue<MenuBool>("rangeE").Enabled){
-                    Render.Circle.DrawCircle(GameObjects.Player.Position,E.Range,System.Drawing.Color.Cyan);
-                }
-                if(mainMenu["Draw"].GetValue<MenuBool>("rangeR").Enabled){
-                    Render.Circle.DrawCircle(GameObjects.Player.Position,R.Range,System.Drawing.Color.Cyan);
-                }
             }
 
-            if (mainMenu["Draw"].GetValue<MenuBool>("Edmg").Enabled)
-            {
-                foreach (var target in GameObjects.EnemyHeroes.Where(x => x.HasBuff("TwitchDeadlyVenom") && (!x.IsDead || x.IsZombie()) && x.IsVisible))
-                {
-                    var targetpos = target.HPBarPosition;
-                    var DamagePorcnt = MathUtil.Clamp((E.GetDamage(target)/target.Health +target.PhysicalShield)*100,0,100);
-                    var VectorPos = new Vector2(targetpos.X + 50, targetpos.Y - 45);
-                    if (DamagePorcnt != 0)
-                    {
-                        DrawText(TextBold,Math.Round(DamagePorcnt).ToString()+"%",targetpos.X+50,targetpos.Y-70,(DamagePorcnt>=100)? SharpDX.Color.Green: SharpDX.Color.White);
-                    }
-                }
-            }
-
-            if (mainMenu["Draw"].GetValue<MenuBool>("Edmgmob").Enabled)
-            {
-                foreach(var mobs in GameObjects.Jungle.Where(x => x.IsValidTarget(E.Range) && x.HasBuff("TwitchDeadlyVenom"))){
-                    if(mobs == null ) return;
-                    if(mobs.Name.Contains("Dragon") || mobs.Name.Contains("Baron") || mobs.Name.Contains("Herald")){
-                        var mobs2 = mobs.Position;
-                        var mobpos = mobs.HPBarPosition;
-                        var Edmg = E.GetDamage(mobs);
-                        var DamagePorcnt = MathUtil.Clamp((Edmg/mobs.Health+mobs.PhysicalShield)*100,0,100);
-                        if(DamagePorcnt != 0){
-                            DrawText(TextBold,Math.Round(DamagePorcnt).ToString()+"%",mobpos.X+50,mobpos.Y-70,
-                                (DamagePorcnt>=100) ? SharpDX.Color.Green : SharpDX.Color.White);
-                        }
-                    }
-                }
-            }
 
             if (mainMenu["Draw"].GetValue<MenuBool>("Qtime").Enabled && GameObjects.Player.HasBuff("AsheQBuff"))
             {
