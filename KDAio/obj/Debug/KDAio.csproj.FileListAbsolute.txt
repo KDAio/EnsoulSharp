@@ -1,0 +1,2 @@
+D:\Firefox pobieranie\EnsoulSharp2\KDAIO\obj\Debug\KDAio.csprojAssemblyReference.cache
+D:\Firefox pobieranie\EnsoulSharp2\KDAIO\obj\Debug\KDAio.csproj.CoreCompileInputs.cache
